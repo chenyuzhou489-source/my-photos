@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Monologue | 影像独白</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/gsap@3.12.2/dist/gsap.min.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --text: rgba(255, 255, 255, 0.85);
+            --accent: #a89f94;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Noto Serif SC', serif; 
+            overflow-x: hidden;
+            transition: background 2s ease;
+        }
+
+        /* 1. 胶片颗粒与背景光影 */
+        .grain {
+            position: fixed; inset: 0; pointer-events: none; z-index: 1000;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.04;
+        }
+        .light-glow {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, #151515 0%, transparent 50%);
+            z-index: -1; pointer-events: none;
+        }
+
+        /* 2. 电影级转场遮罩 */
+        .scene-transition {
+            position: fixed; inset: 0; background: #000; z-index: 2000;
+            opacity: 0; pointer-events: none;
+        }
+
+        /* 3. 高级感分章节标头 */
+        header {
+            position: fixed; top: 0; width: 100%; padding: 40px 6vw;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1500; backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .brand { font-family: 'Ma Shan Zheng', cursive; font-size: 1.8rem; }
+        
+        /* 侧边导航：主题分类 */
+        .theme-nav { display: flex; gap: 25px; }
+        .theme-item {
+            font-size: 0.65rem; letter-spacing: 2px; color: rgba(255,255,255,0.3);
+            transition: 0.5s; position: relative;
+        }
+        .theme-item.active { color: var(--accent); }
+        .theme-item:hover { color: #fff; }
+
+        /* 4. 章节容器 */
+        .chapter-container {
+            padding: 180px 8vw 100px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 80px 40px;
+        }
+
+        /* 5. 每一个摄影单元 */
+        .photo-item { opacity: 0; transform: translateY(30px); }
+        .photo-item:nth-child(3n+2) { margin-top: 80px; }
+        
+        .img-wrap {
+            width: 100%; aspect-ratio: 3/4; overflow: hidden; background: #111;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        .img-wrap img {
+            width: 100%; height: 100%; object-fit: cover;
+            filter: blur(10px) brightness(0.9);
+            transition: 1.8s cubic-bezier(0.2, 1, 0.3, 1);
+        }
+        .photo-item.active img { filter: blur(0px) brightness(1); }
+
+        .meta { margin-top: 25px; }
+        .meta h3 { font-family: 'Ma Shan Zheng', cursive; font-size: 1.3rem; color: var(--accent); margin-bottom: 8px; }
+        .meta p { font-size: 0.7rem; color: rgba(255,255,255,0.4); line-height: 1.8; letter-spacing: 1px; }
+
+        /* 光标 */
+        .cursor {
+            position: fixed; width: 6px; height: 6px; background: #fff;
+            border-radius: 50%; pointer-events: none; z-index: 9999;
+            mix-blend-mode: difference;
+        }
+    </style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div class="light-glow"></div>
+<div class="scene-transition"></div>
+<div class="cursor"></div>
+
+<header>
+    <div class="brand">影像叙事</div>
+    <nav class="theme-nav">
+        <div class="theme-item active" onclick="changeChapter('温柔序章')">温柔序章・治愈</div>
+        <div class="theme-item" onclick="changeChapter('暮色沉眠')">暮色沉眠・浪漫</div>
+        <div class="theme-item" onclick="changeChapter('人间留白')">人间留白・清冷</div>
+        <div class="theme-item" onclick="changeChapter('山野叙事')">山野叙事・荒芜</div>
+        <div class="theme-item" onclick="changeChapter('日光纪事')">日光纪事・鲜活</div>
+        <div class="theme-item" onclick="changeChapter('雾境臆想')">雾境臆想・幻梦</div>
+    </nav>
+</header>
+
+<main class="chapter-container" id="gallery"></main>
+
+<script>
+    // 1. 章节数据配置 (秩序感的核心)
+    const chapters = {
+        '温柔序章': {
+            bg: '#0d0d0d', accent: '#a89f94',
+            photos: [
+                {title: '四月物语', desc: '关于呼吸，关于那一秒沉默。', src: 'https://github.com/chenyuzhou489-source/my-photos/blob/main/1.jpg?raw=true'},
+                {title: '花与爱', desc: '漫长的芭蕾。', src: '2.jpg'},
+                {title: '莉莉周', desc: '以眼泪为信。', src: '3.jpg'}
+            ]
+        },
+        '暮色沉眠': {
+            bg: '#0a0808', accent: '#7c6a6a',
+            photos: [
+                {title: '深红时刻', desc: '太阳落山后的余温。', src: '4.jpg'},
+                {title: '晚钟', desc: '寂静在旷野蔓延。', src: '5.jpg'},
+                {title: '最后情书', desc: '你好吗。', src: '6.jpg'}
+            ]
+        },
+        '人间留白': {
+            bg: '#0f0f11', accent: '#94a1a8',
+            photos: [
+                {title: '雾中行', desc: '模糊的边界。', src: '7.jpg'},
+                {title: '极简主义', desc: '空无一物的丰盛。', src: '8.jpg'}
+            ]
+        }
+        // ... 其他章节以此类推
+    };
+
+    // 2. 章节切换逻辑：电影级叠化转场
+    function changeChapter(name) {
+        const curtain = document.querySelector('.scene-transition');
+        
+        // A. 拉幕：屏幕变黑
+        gsap.to(curtain, { opacity: 1, duration: 1, pointerEvents: 'all', onComplete: () => {
+            renderGallery(name);
+            updateNav(name);
+            // B. 启幕：屏幕恢复
+            gsap.to(curtain, { opacity: 0, duration: 1.5, delay: 0.5, pointerEvents: 'none' });
+        }});
+    }
+
+    function renderGallery(name) {
+        const data = chapters[name] || chapters['温柔序章'];
+        const gallery = document.getElementById('gallery');
+        document.body.style.backgroundColor = data.bg;
+
+        gallery.innerHTML = data.photos.map(p => `
+            <div class="photo-item">
+                <div class="img-wrap"><img src="${p.src}" alt=""></div>
+                <div class="meta">
+                    <h3>${p.title}</h3>
+                    <p>${p.desc}<br>VISUAL DIARY - 2026</p>
+                </div>
+            </div>
+        `).join('');
+
+        // 重新启动入场动画
+        gsap.to(".photo-item", {
+            opacity: 1, y: 0, duration: 2, stagger: 0.2, onStart: () => {
+                document.querySelectorAll('.photo-item').forEach(el => el.classList.add('active'));
+            }
+        });
+    }
+
+    function updateNav(name) {
+        document.querySelectorAll('.theme-item').forEach(item => {
+            item.classList.toggle('active', item.innerText.includes(name));
+        });
+    }
+
+    // 3. 初始加载
+    window.onload = () => renderGallery('温柔序章');
+
+    // 4. 光标跟随
+    const cursor = document.querySelector('.cursor');
+    document.addEventListener('mousemove', e => {
+        gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.3 });
+    });
+</script>
+</body>
+</html>
